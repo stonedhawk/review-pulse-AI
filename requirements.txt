@@ -1,0 +1,9 @@
+google-api-python-client
+google-auth
+pydantic
+pydantic-settings
+python-dotenv
+sqlalchemy
+google-genai
+streamlit
+jira
