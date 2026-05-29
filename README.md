@@ -2,10 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://streamlit.io)
-
-![Dashboard Hero](docs/assets/dashboard_hero.png)
-*(Note: Add screenshot to `docs/assets/dashboard_hero.png`)*
+[![Streamlit App](https://img.shields.io/badge/Streamlit-App-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io)
 
 **An open-source, local-first Play Store review triage engine. Clusters feedback, calculates priority scores, and drafts AI responses directly to Jira.**
 
