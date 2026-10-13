@@ -32,8 +32,10 @@ def create_schema():
 
 def run_demo():
     use_demo_database()
-    if os.path.exists(DEMO_DB_PATH):
-        os.remove(DEMO_DB_PATH)
+    # Remove the WAL sidecars too: SQLite can replay a stale -wal file into a fresh database.
+    for path in (DEMO_DB_PATH, f"{DEMO_DB_PATH}-wal", f"{DEMO_DB_PATH}-shm"):
+        if os.path.exists(path):
+            os.remove(path)
     create_schema()
 
     from core.analyzer import ReviewAnalyzer

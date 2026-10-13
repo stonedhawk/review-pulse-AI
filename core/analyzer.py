@@ -27,7 +27,8 @@ class ReviewAnalyzer:
                 } for r in untriaged
             ]
 
-            print(f"Sending {len(reviews_data)} reviews to {self.clusterer.label} for clustering...")
+            label = getattr(self.clusterer, "label", type(self.clusterer).__name__)
+            print(f"Sending {len(reviews_data)} reviews to {label} for clustering...")
             # 2. Cluster the reviews via LLM
             # Note: For very large datasets, we should batch this (e.g. 50-100 reviews per prompt). 
             # We'll assume the current ingestion limit of 500 can be processed or we slice it.
