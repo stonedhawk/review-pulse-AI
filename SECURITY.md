@@ -25,7 +25,7 @@ ReviewPulse AI is architected with three core defense layers to minimize attack 
    We do not use physical `.json` files for Google Cloud Authentication, avoiding accidental commits of sensitive keys. The `GOOGLE_APPLICATION_CREDENTIALS_JSON` environment variable injects service account keys directly into memory upon initialization.
 
 2. **Local Data Persistence:** 
-   By utilizing a localized SQLite database configured with Write-Ahead Logging (WAL), ReviewPulse guarantees that your Triaged reviews and proprietary Rating Drag logic never leave your host machine (or Docker container volume) unless explicitly pushed to Jira or the Play Store. There is no unauthorized cloud sync.
+   By utilizing a localized SQLite database configured with Write-Ahead Logging (WAL), ReviewPulse guarantees that your Triaged reviews and proprietary Rating Drag logic never leave your host machine unless explicitly pushed to Jira or the Play Store. There is no unauthorized cloud sync.
 
 3. **API Failsafes & Hardcaps:** 
    To prevent denial-of-wallet attacks and API quotas from being drained, the Ingestion Engine features hardcoded pagination caps (fetching a strict maximum of 500 reviews per run). Furthermore, the Human-in-the-Loop (HITL) dashboard state-machine enforces that no automated drafts can be pushed to the Google Play Store without explicit user approval.

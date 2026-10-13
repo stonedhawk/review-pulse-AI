@@ -19,3 +19,8 @@ ENV/
 
 # OS
 .DS_Store
+
+# Demo output
+data/demo_output.md
+*.db-shm
+*.db-wal

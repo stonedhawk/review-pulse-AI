@@ -21,7 +21,11 @@ def print_markdown_table(cluster_stats):
 
 def main():
     print("Starting Analysis & Prioritization Process...")
-    analyzer = ReviewAnalyzer()
+    try:
+        analyzer = ReviewAnalyzer()
+    except ValueError as ve:
+        print(f"Configuration Error: {ve}")
+        return
     stats = analyzer.run_analysis()
     
     if stats:

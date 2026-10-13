@@ -1,17 +1,39 @@
+import os
+import sys
+
+# `streamlit run app/main.py` puts app/ on the path, not the repo root, so `core` would not import.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import streamlit as st
 import pandas as pd
-from core.database import SessionLocal, Review
+from core.database import Base, SessionLocal, Review, engine
+from core.demo import template_draft
 from core.llm_client import GeminiClient
 from core.ingest import GooglePlayIngestor
 from core.jira_client import JiraClient
 from sqlalchemy import func, desc
 
-# Initialize clients
-llm_client = GeminiClient()
-ingestor = GooglePlayIngestor()
-jira_client = JiraClient()
+# Set by `python pulse.py ui --demo`: drafts come from templates and nothing is sent anywhere.
+DEMO_MODE = os.environ.get("REVIEWPULSE_DEMO") == "1"
 
 st.set_page_config(page_title="ReviewPulse AI", layout="wide", page_icon="📈")
+
+# Idempotent: makes a first run on an empty database show the empty state instead of erroring.
+os.makedirs("data", exist_ok=True)
+Base.metadata.create_all(bind=engine)
+
+# Clients are created on first use, so the dashboard opens even when a key is missing.
+@st.cache_resource
+def get_llm_client():
+    return GeminiClient()
+
+@st.cache_resource
+def get_ingestor():
+    return GooglePlayIngestor()
+
+@st.cache_resource
+def get_jira_client():
+    return JiraClient()
 
 def get_db():
     db = SessionLocal()
@@ -55,7 +77,7 @@ def load_reviews_for_cluster(cluster_id):
     return reviews
 
 def reply_and_update(review_id, reply_text):
-    success = ingestor.reply_to_review(review_id, reply_text)
+    success = get_ingestor().reply_to_review(review_id, reply_text)
     if success:
         db = next(get_db())
         review = db.query(Review).filter(Review.review_id == review_id).first()
@@ -74,6 +96,8 @@ st.sidebar.metric("Total Triaged", triaged)
 st.sidebar.metric("Highest Priority Cluster", top_cluster)
 
 st.title("Cluster Triage Dashboard")
+if DEMO_MODE:
+    st.info("Demo mode: mock reviews, template drafts. Sending replies and Jira tickets are turned off.")
 
 # Top 5 Clusters Table
 st.subheader("Top 5 Critical Clusters")
@@ -99,9 +123,9 @@ if not top_clusters_df.empty:
             priority_score = cluster_info.iloc[0]['Priority Score']
             if priority_score > 15:
                 st.warning(f"High Priority Cluster! Score: {priority_score}")
-                if st.button("Push to Jira"):
+                if st.button("Push to Jira", disabled=DEMO_MODE):
                     with st.spinner("Creating Jira Ticket..."):
-                        jira_url = jira_client.create_bug_ticket(selected_cluster, priority_score, reviews)
+                        jira_url = get_jira_client().create_bug_ticket(selected_cluster, priority_score, reviews)
                         if jira_url:
                             st.success(f"Ticket created successfully: [View Jira Ticket]({jira_url})")
                         else:
@@ -122,8 +146,15 @@ if not top_clusters_df.empty:
                     
                     with col1:
                         if st.button("Generate AI Draft", key=f"btn_gen_{review.review_id}"):
-                            with st.spinner("Drafting..."):
-                                draft = llm_client.draft_review_response(review.review_text, selected_cluster)
+                            if DEMO_MODE:
+                                st.session_state[draft_key] = template_draft(selected_cluster)
+                                st.rerun()
+                            try:
+                                with st.spinner("Drafting..."):
+                                    draft = get_llm_client().draft_review_response(review.review_text, selected_cluster)
+                            except ValueError as e:
+                                st.error(str(e))
+                            else:
                                 st.session_state[draft_key] = draft
                                 st.rerun()
                     
@@ -140,12 +171,16 @@ if not top_clusters_df.empty:
                         
                         st.caption(f"Characters remaining: {350 - len(edited_draft)}")
                         
-                        if st.button("Approve & Send", type="primary", key=f"btn_send_{review.review_id}"):
+                        if st.button("Approve & Send", type="primary", key=f"btn_send_{review.review_id}", disabled=DEMO_MODE):
                             with st.spinner("Sending to Google Play..."):
-                                success = reply_and_update(review.review_id, edited_draft)
+                                try:
+                                    success = reply_and_update(review.review_id, edited_draft)
+                                except ValueError as e:
+                                    st.error(str(e))
+                                    success = None
                                 if success:
                                     st.success("Reply sent successfully!")
                                     del st.session_state[draft_key]
                                     st.rerun()
-                                else:
+                                elif success is False:
                                     st.error("Failed to send reply. Check API quotas or credentials.")

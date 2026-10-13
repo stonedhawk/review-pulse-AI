@@ -1,12 +1,14 @@
 import datetime
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from core.config import settings
+from core.config import missing_key_message, settings
 from core.database import SessionLocal, Review
 from sqlalchemy.dialects.sqlite import insert
 
 class GooglePlayIngestor:
     def __init__(self):
+        if not settings.PLAY_STORE_PACKAGE_NAME:
+            raise ValueError(missing_key_message("PLAY_STORE_PACKAGE_NAME"))
         credentials = settings.get_google_credentials()
         self.service = build('androidpublisher', 'v3', credentials=credentials)
         self.package_name = settings.PLAY_STORE_PACKAGE_NAME

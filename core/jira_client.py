@@ -12,7 +12,7 @@ class JiraClient:
                 )
             except Exception as e:
                 print(f"Failed to authenticate with Jira: {e}")
-                self.is_configured = false
+                self.is_configured = False
 
     def create_bug_ticket(self, cluster_name: str, priority_score: float, reviews: list) -> str | None:
         if not self.is_configured:
