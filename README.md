@@ -138,6 +138,7 @@ graph TD
 ```
 
 ### Security First
+- **Dashboard Access:** The dashboard has no login and binds to localhost only (set in `.streamlit/config.toml`). Don't run it on a shared server or expose its port.
 - **Credentials in `.env`:** Keys live in `.env`, which is gitignored. The service account JSON is pasted into `.env` and parsed in memory, so there is no separate key file to commit by accident.
 - **Local Persistence:** Reviews, clusters and priority scores are stored in a local SQLite WAL database. ReviewPulse has no cloud sync. Data leaves your machine when you send it: review fields to Gemini, approved replies to Google Play, and, when you click Push to Jira, the cluster name, priority score and the star rating and text of up to five reviews to your Jira project. Reviewer names never leave your machine: they are not sent to Gemini, Google Play or Jira.
 - **Privacy Boundary:** Priority scores, your target rating and Jira settings are not included in Gemini prompts. Gemini sees review text, plus star rating and app version when clustering, but not reviewer names. Review text is passed as written, so it can contain personal details players type in, such as names, emails or account IDs. See `SECURITY.md` for the exact fields.

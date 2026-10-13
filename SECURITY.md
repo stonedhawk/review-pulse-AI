@@ -30,6 +30,9 @@ Instead, use GitHub's private vulnerability reporting: open the repository's **S
 3. **Fetch Caps and Human Approval:**
    Each `fetch` run reads at most 5 pages of 100 reviews (500 in total). `process` sends every untriaged review to Gemini in batches of 100, so reviews from several fetches all go in a single run. Replies are posted to Google Play only when someone clicks Approve & Send in the dashboard; no code path posts a reply on its own.
 
+4. **Dashboard Access:**
+   The dashboard has no login and binds to localhost only (set in `.streamlit/config.toml`). Don't run it on a shared server or expose its port.
+
 ## LLM Privacy Boundary (Google Gemini)
 
 Clustering and drafting send review text to the Google Gemini API.
