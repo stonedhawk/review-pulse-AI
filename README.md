@@ -6,44 +6,44 @@
 
 **An open-source, local-first Play Store review triage engine. Clusters feedback, calculates priority scores, and drafts AI responses directly to Jira.**
 
+![ReviewPulse demo: python pulse.py demo ranks mock reviews into priority-scored clusters](docs/demo.gif)
+
 Stop manually reading spreadsheets of app reviews. ReviewPulse AI automatically clusters Google Play feedback, ranks bugs by their impact on your store rating (Rating Drag), and drafts empathetic responses using Gemini—all without your data ever leaving your local machine.
 
 ---
 
 ## ⚡ The 30-Second Demo (No API Keys Required)
 
-Want to see how the dashboard works without setting up Google Play API keys? You can run the unified CLI to inject realistic mock data and launch the UI instantly.
+Want to see how it works without setting up Google Play or Gemini keys? The demo seeds mock reviews, clusters them with a local keyword matcher in place of Gemini, and runs the real priority scoring.
 
 1. Clone the repo and navigate to the directory:
    ```bash
    git clone https://github.com/stonedhawk/review-pulse-AI.git
    cd review-pulse-AI
    ```
-2. Run the local setup script to install dependencies:
+2. Run the setup script to create a virtual environment and install dependencies:
    ```bash
    sh setup.sh  # (On Windows, run setup.bat)
    source venv/bin/activate
    ```
-3. Run the Demo command!
+3. Run the demo:
    ```bash
    python pulse.py demo
    ```
-This will instantly populate the database with mock reviews, run a local deterministic algorithm to cluster them, and generate a readable report at `data/demo_output.md`.
 
-**Sample Demo Output:**
-```markdown
-## Crash on Startup (Priority Score: 17.5)
-- Issues Count: 5
-- Average Rating: 1.0/5
-- AI Draft Response: _We apologize for the crashing issues. Our team is investigating..._
-
-## Gacha Rates / Monetization (Priority Score: 10.0)
-- Issues Count: 4
-- Average Rating: 2.0/5
-- AI Draft Response: _We appreciate your feedback on the summon rates..._
+**Demo output:**
+```text
+SCORE  REVIEWS  AVG  CLUSTER
+ 20.0        6  1.2  Crash on Startup
+ 12.5        5  2.0  Gacha Rates
+ 12.0        4  1.5  Login / Server
+  4.5        3  3.0  Battery / Heat
+  0.0        5  5.0  Generic Praise
 ```
 
-*(You can also run `python pulse.py ui` afterward to view the Streamlit dashboard!)*
+A full report with draft replies is written to `data/demo_output.md`. Demo drafts come from templates; with a key, Gemini writes them.
+
+Then open the dashboard on the demo data with `python pulse.py ui --demo`. Sending replies and Jira tickets are turned off in demo mode. The demo uses its own database (`data/demo.db`), so it never mixes with real reviews.
 
 ---
 
@@ -65,7 +65,6 @@ Before running ReviewPulse AI with real data, you'll need:
 - **Google Play Developer API** — a service account JSON with "Reply to Reviews" permission. [Setup guide](https://developers.google.com/android-publisher/getting_started)
 - **Gemini API key** — get one at [aistudio.google.com](https://aistudio.google.com)
 - **Jira API token** (optional) — only required for automatic backlog routing
-- **Docker** (optional) — recommended for team deployments
 
 ---
 
@@ -81,19 +80,9 @@ When you are ready to process real data, you must provide your Google Play and G
    - `GOOGLE_APPLICATION_CREDENTIALS_JSON`: A Service Account JSON from your Google Play Console with "Reply to Reviews" permission. Paste it **on a single line** next to the `=` sign.
    - `JIRA_*`: (Optional) Fill these out to enable the "Push to Jira" button.
 
-### Step 2: Deployment
+### Step 2: Run It
 
-Choose **one** of the methods below. Method A is highly recommended for teams.
-
-#### Method A: Docker (Recommended)
-If you have Docker installed, simply run:
-```bash
-docker-compose up -d --build
-```
-This builds the database, starts the UI in the background, and mounts a persistent volume so you never lose your triage data.
-
-#### Method B: Local Environment
-If you prefer running it locally, activate your virtual environment (`source venv/bin/activate`) and use the unified CLI:
+Activate your virtual environment (`source venv/bin/activate`) and use the CLI:
 
 ```bash
 # 1. Fetch new reviews from Google Play
@@ -116,7 +105,7 @@ python pulse.py ui
 python pulse.py demo
 ```
 
-This populates the database with mock reviews, runs the clustering pipeline locally, and outputs a readable report to `data/demo_output.md`. If you see priority-scored clusters in the output, the core pipeline is working.
+This seeds mock reviews into `data/demo.db`, runs the clustering and scoring pipeline locally, and writes a report to `data/demo_output.md`. If you see priority-scored clusters in the output, the core pipeline is working. Run the tests with `python -m unittest`.
 
 **Production check:** After configuring your `.env`, run:
 

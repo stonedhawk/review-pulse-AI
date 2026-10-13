@@ -1,10 +1,14 @@
 import json
 from google import genai
 from google.genai import types
-from core.config import settings
+from core.config import missing_key_message, settings
 
 class GeminiClient:
+    label = "Gemini"
+
     def __init__(self):
+        if not settings.GEMINI_API_KEY:
+            raise ValueError(missing_key_message("GEMINI_API_KEY"))
         # We assume the library will automatically pick up GEMINI_API_KEY from environment, 
         # but we can explicitly pass it if needed.
         self.client = genai.Client(api_key=settings.GEMINI_API_KEY)

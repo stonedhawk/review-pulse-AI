@@ -3,8 +3,9 @@ from core.llm_client import GeminiClient
 from core.config import settings
 
 class ReviewAnalyzer:
-    def __init__(self):
-        self.llm_client = GeminiClient()
+    def __init__(self, clusterer=None):
+        # Anything with cluster_reviews_batch() works. The demo passes a local keyword clusterer.
+        self.clusterer = clusterer or GeminiClient()
         self.target_rating = settings.TARGET_STORE_RATING
 
     def run_analysis(self):
@@ -26,7 +27,8 @@ class ReviewAnalyzer:
                 } for r in untriaged
             ]
 
-            print(f"Sending {len(reviews_data)} reviews to Gemini for clustering...")
+            label = getattr(self.clusterer, "label", type(self.clusterer).__name__)
+            print(f"Sending {len(reviews_data)} reviews to {label} for clustering...")
             # 2. Cluster the reviews via LLM
             # Note: For very large datasets, we should batch this (e.g. 50-100 reviews per prompt). 
             # We'll assume the current ingestion limit of 500 can be processed or we slice it.
@@ -35,7 +37,7 @@ class ReviewAnalyzer:
             chunk_size = 100
             for i in range(0, len(reviews_data), chunk_size):
                 chunk = reviews_data[i:i+chunk_size]
-                res = self.llm_client.cluster_reviews_batch(chunk)
+                res = self.clusterer.cluster_reviews_batch(chunk)
                 clustered_results.extend(res)
 
             # Map results by review_id for quick lookup
