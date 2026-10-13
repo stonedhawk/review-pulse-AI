@@ -25,7 +25,7 @@ ReviewPulse AI is architected with three core defense layers to minimize attack 
    We do not use physical `.json` files for Google Cloud Authentication, avoiding accidental commits of sensitive keys. The `GOOGLE_APPLICATION_CREDENTIALS_JSON` environment variable injects service account keys directly into memory upon initialization.
 
 2. **Local Data Persistence:** 
-   By utilizing a localized SQLite database configured with Write-Ahead Logging (WAL), ReviewPulse guarantees that your Triaged reviews and proprietary Rating Drag logic never leave your host machine unless explicitly pushed to Jira or the Play Store. There is no unauthorized cloud sync.
+   By utilizing a localized SQLite database configured with Write-Ahead Logging (WAL), your triage database and proprietary Rating Drag logic stay on your host machine unless explicitly pushed to Jira or the Play Store. There is no unauthorized cloud sync. Review text does go to Gemini for clustering and drafting; see the LLM Privacy Boundary below.
 
 3. **API Failsafes & Hardcaps:** 
    To prevent denial-of-wallet attacks and API quotas from being drained, the Ingestion Engine features hardcoded pagination caps (fetching a strict maximum of 500 reviews per run). Furthermore, the Human-in-the-Loop (HITL) dashboard state-machine enforces that no automated drafts can be pushed to the Google Play Store without explicit user approval.
@@ -36,4 +36,4 @@ When drafting AI responses and clustering issues, the raw review texts *are* sec
 
 However, we enforce a strict privacy boundary:
 - **No Internal Metadata:** Your `Target Store Rating`, internal priority weighting metrics, Jira configurations, and any studio-specific credentials are strictly stripped from the LLM context window. 
-- **Anonymization:** Only the raw review body and star rating are evaluated by Gemini for semantic clustering.
+- **Minimal Fields:** For clustering, Gemini receives the review ID, review body, star rating and app version. For drafting, it receives the review body and cluster name. Reviewer names are never sent.

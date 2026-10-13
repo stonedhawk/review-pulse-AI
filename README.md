@@ -8,7 +8,7 @@
 
 ![ReviewPulse demo: python pulse.py demo ranks mock reviews into priority-scored clusters](docs/demo.gif)
 
-Stop manually reading spreadsheets of app reviews. ReviewPulse AI automatically clusters Google Play feedback, ranks bugs by their impact on your store rating (Rating Drag), and drafts empathetic responses using Gemini—all without your data ever leaving your local machine.
+Stop manually reading spreadsheets of app reviews. ReviewPulse AI automatically clusters Google Play feedback, ranks bugs by their impact on your store rating (Rating Drag), and drafts empathetic responses using Gemini. Your triage data stays on your machine; only review text is sent to Gemini.
 
 ---
 
