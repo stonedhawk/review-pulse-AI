@@ -24,8 +24,9 @@ class JiraClient:
         description += f"*Calculated Priority Score (Rating Drag):* {priority_score}\n\n"
         description += "*Top Associated Reviews:*\n"
         
+        # Reviewer names stay local: the ticket gets rating and text only.
         for idx, review in enumerate(reviews[:5]):
-            description += f"{idx+1}. ({review.rating} ⭐) {review.reviewer_name}: {review.review_text}\n"
+            description += f"{idx+1}. ({review.rating} ⭐) {review.review_text}\n"
 
         issue_dict = {
             'project': {'key': settings.JIRA_PROJECT_KEY},
