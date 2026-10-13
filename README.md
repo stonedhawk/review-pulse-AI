@@ -4,11 +4,11 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Streamlit App](https://img.shields.io/badge/Streamlit-App-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io)
 
-**An open-source, local-first Play Store review triage engine. Clusters feedback, calculates priority scores, and drafts replies with Gemini, and pushes high-priority clusters to Jira.**
+**An open-source, local-first Play Store review triage engine. Clusters feedback, calculates priority scores, drafts replies with Gemini, and sends high-priority clusters to Jira when you click.**
 
 ![ReviewPulse demo: python pulse.py demo ranks mock reviews into priority-scored clusters](docs/demo.gif)
 
-Stop manually reading spreadsheets of app reviews. ReviewPulse AI automatically clusters Google Play feedback, ranks bugs by their impact on your store rating (Rating Drag), and drafts empathetic responses using Gemini. Your triage data stays on your machine; Gemini sees the review fields listed in SECURITY.md, never reviewer names.
+Stop manually reading spreadsheets of app reviews. ReviewPulse AI automatically clusters Google Play feedback, ranks bugs by their impact on your store rating (Rating Drag), and drafts empathetic responses using Gemini. No cloud sync: data leaves your machine only when you run a step that sends it to Gemini, Google Play or Jira.
 
 ---
 
@@ -141,4 +141,5 @@ graph TD
 - **Credentials in `.env`:** Keys live in `.env`, which is gitignored. The service account JSON is pasted into `.env` and parsed in memory, so there is no separate key file to commit by accident.
 - **Local Persistence:** Reviews, clusters and priority scores are stored in a local SQLite WAL database. ReviewPulse has no cloud sync. Data leaves your machine when you send it: review fields to Gemini, approved replies to Google Play, and, when you click Push to Jira, the cluster name, priority score and up to five reviews (reviewer names included) to your Jira project.
 - **Privacy Boundary:** Priority scores, your target rating and Jira settings are not included in Gemini prompts. Gemini sees review text, plus star rating and app version when clustering, but not reviewer names. Review text is passed as written, so it can contain personal details players type in, such as names, emails or account IDs. See `SECURITY.md` for the exact fields.
+- **Prompt Injection:** Reviews are clustered 100 per prompt, so one review can try to steer the whole batch, mislabelling other reviews or skewing priority scores. Drafts are reviewed before posting; cluster assignments are not, so check a cluster's reviews and score before pushing it to Jira.
 
