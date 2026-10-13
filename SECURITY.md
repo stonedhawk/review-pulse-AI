@@ -23,7 +23,9 @@ Instead, use GitHub's private vulnerability reporting: open the repository's **S
    Reviews, clusters and priority scores are stored in a local SQLite database with Write-Ahead Logging (WAL). ReviewPulse has no cloud sync. Data leaves your machine in three cases:
    - **Gemini:** review fields for clustering and drafting (see the LLM Privacy Boundary below).
    - **Google Play:** a reply, when you click Approve & Send.
-   - **Jira:** when you click Push to Jira, the cluster name, priority score and up to five of its reviews, including reviewer names, star ratings and review text.
+   - **Jira:** when you click Push to Jira, the cluster name, priority score, and the star rating and text of up to five of its reviews.
+
+   Reviewer names never leave your machine. They are stored in the local database and shown in the dashboard, but are not sent to Gemini, Google Play or Jira. `tests/test_jira.py` checks the Jira payload for them.
 
 3. **Fetch Caps and Human Approval:**
    Each `fetch` run reads at most 5 pages of 100 reviews (500 in total). `process` sends every untriaged review to Gemini in batches of 100, so reviews from several fetches all go in a single run. Replies are posted to Google Play only when someone clicks Approve & Send in the dashboard; no code path posts a reply on its own.
