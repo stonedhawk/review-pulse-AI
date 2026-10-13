@@ -1,4 +1,4 @@
-"""Checks the dashboard binds to localhost only. It has no login, so it must not listen on the network.
+"""Checks the dashboard stays local: it binds to localhost and sends no usage stats to Streamlit.
 
     python -m unittest
 """
@@ -10,7 +10,15 @@ CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 
 
 class StreamlitConfigTest(unittest.TestCase):
-    def test_server_address_is_localhost(self):
+    @classmethod
+    def setUpClass(cls):
         with open(CONFIG_PATH, "rb") as f:
-            config = tomllib.load(f)
-        self.assertEqual(config["server"]["address"], "localhost")
+            cls.config = tomllib.load(f)
+
+    def test_server_address_is_localhost(self):
+        # The dashboard has no login, so it must not listen on the network.
+        self.assertEqual(self.config["server"]["address"], "localhost")
+
+    def test_usage_stats_are_off(self):
+        # Streamlit defaults this to true, which would send usage data off the machine.
+        self.assertIs(self.config["browser"]["gatherUsageStats"], False)
