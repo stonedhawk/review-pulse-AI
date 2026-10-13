@@ -1,39 +1,39 @@
 # Security Policy
 
-ReviewPulse AI handles sensitive community feedback, authentication keys, and corporate Jira backlogs. We take security seriously.
+ReviewPulse AI handles player feedback, API keys, and access to your Jira backlog. This page covers how to report a problem and what the code does with your data.
 
 ## Supported Versions
 
-Currently, only the `main` branch of this repository receives security updates. We do not support legacy forks or decoupled feature branches at this time.
+Security fixes land on the `main` branch. Forks and older feature branches are not maintained.
 
 ## Reporting a Vulnerability
 
-**DO NOT** open public GitHub issues or discussions to report security vulnerabilities. This exposes zero-day flaws to malicious actors before a patch can be deployed.
+Please don't report security vulnerabilities in public GitHub issues or discussions, because that exposes the flaw before a fix ships.
 
-If you discover a vulnerability, please email our security triage team directly at:
-**[security@yourstudio.com]**
-
-We will acknowledge your report within 48 hours and work with you to patch the issue safely.
+Instead, use GitHub's private vulnerability reporting: open the repository's **Security** tab and click **Report a vulnerability**, or go straight to [the new advisory form](https://github.com/stonedhawk/review-pulse-AI/security/advisories/new). The report is visible only to you and the maintainer.
 
 ---
 
-## Security Architecture & Defense Layers
+## How the Code Handles Keys and Data
 
-ReviewPulse AI is architected with three core defense layers to minimize attack surfaces, especially concerning LLM prompt injection and API abuse:
+1. **Credentials in `.env`:**
+   Keys are read from `.env`, which is gitignored. The Google service account JSON is pasted into `.env` as `GOOGLE_APPLICATION_CREDENTIALS_JSON` and parsed in memory, so there is no separate `.json` key file in the project folder to commit by accident.
 
-1. **Zero-File Credential Loading:** 
-   We do not use physical `.json` files for Google Cloud Authentication, avoiding accidental commits of sensitive keys. The `GOOGLE_APPLICATION_CREDENTIALS_JSON` environment variable injects service account keys directly into memory upon initialization.
+2. **Local Data Persistence:**
+   Reviews, clusters and priority scores are stored in a local SQLite database with Write-Ahead Logging (WAL). ReviewPulse has no cloud sync. Data leaves your machine in three cases:
+   - **Gemini:** review fields for clustering and drafting (see the LLM Privacy Boundary below).
+   - **Google Play:** a reply, when you click Approve & Send.
+   - **Jira:** when you click Push to Jira, the cluster name, priority score and up to five of its reviews, including reviewer names, star ratings and review text.
 
-2. **Local Data Persistence:** 
-   By utilizing a localized SQLite database configured with Write-Ahead Logging (WAL), your triage database and proprietary Rating Drag logic stay on your host machine unless explicitly pushed to Jira or the Play Store. There is no unauthorized cloud sync. Review text does go to Gemini for clustering and drafting; see the LLM Privacy Boundary below.
-
-3. **API Failsafes & Hardcaps:** 
-   To prevent denial-of-wallet attacks and API quotas from being drained, the Ingestion Engine features hardcoded pagination caps (fetching a strict maximum of 500 reviews per run). Furthermore, the Human-in-the-Loop (HITL) dashboard state-machine enforces that no automated drafts can be pushed to the Google Play Store without explicit user approval.
+3. **Fetch Caps and Human Approval:**
+   Each `fetch` run reads at most 5 pages of 100 reviews (500 in total). `process` sends every untriaged review to Gemini in batches of 100, so reviews from several fetches all go in a single run. Replies are posted to Google Play only when someone clicks Approve & Send in the dashboard; no code path posts a reply on its own.
 
 ## LLM Privacy Boundary (Google Gemini)
 
-When drafting AI responses and clustering issues, the raw review texts *are* securely transmitted to the Google Gemini API. 
+Clustering and drafting send review text to the Google Gemini API.
 
-However, we enforce a strict privacy boundary:
-- **No Internal Metadata:** Your `Target Store Rating`, internal priority weighting metrics, Jira configurations, and any studio-specific credentials are strictly stripped from the LLM context window. 
-- **Minimal Fields:** For clustering, Gemini receives the review ID, review body, star rating and app version. For drafting, it receives the review body and cluster name. Reviewer names are never sent.
+- **Fields sent:** For clustering, Gemini receives the review ID, review text, star rating and app version. For drafting, it receives the review text and cluster name. Reviewer names are not sent.
+- **Not sent:** Your target store rating, priority scores, Jira settings and API keys are not included in prompts.
+- **Review text is sent as written.** Players can type personal details into a review, such as names, emails or account IDs, and those go to Gemini with the rest of the text. ReviewPulse does not remove them.
+- **Free vs. paid keys:** On the free tier, Google can use your prompts to improve its products, and human reviewers may read them. For real player reviews, use a key from a Google Cloud project with billing enabled. See the [Gemini API terms](https://ai.google.dev/gemini-api/terms).
+- **Prompt injection:** Review text is placed into prompts unescaped, so a review can try to steer the model. A bad cluster label or draft is the likely result; every draft is shown to you for editing before anything is posted.

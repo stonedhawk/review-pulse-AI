@@ -4,11 +4,11 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Streamlit App](https://img.shields.io/badge/Streamlit-App-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io)
 
-**An open-source, local-first Play Store review triage engine. Clusters feedback, calculates priority scores, and drafts AI responses directly to Jira.**
+**An open-source, local-first Play Store review triage engine. Clusters feedback, calculates priority scores, and drafts replies with Gemini, and pushes high-priority clusters to Jira.**
 
 ![ReviewPulse demo: python pulse.py demo ranks mock reviews into priority-scored clusters](docs/demo.gif)
 
-Stop manually reading spreadsheets of app reviews. ReviewPulse AI automatically clusters Google Play feedback, ranks bugs by their impact on your store rating (Rating Drag), and drafts empathetic responses using Gemini. Your triage data stays on your machine; only review text is sent to Gemini.
+Stop manually reading spreadsheets of app reviews. ReviewPulse AI automatically clusters Google Play feedback, ranks bugs by their impact on your store rating (Rating Drag), and drafts empathetic responses using Gemini. Your triage data stays on your machine; Gemini sees the review fields listed in SECURITY.md, never reviewer names.
 
 ---
 
@@ -51,9 +51,9 @@ Then open the dashboard on the demo data with `python pulse.py ui --demo`. Sendi
 
 ReviewPulse AI shifts your mobile game operations from reactive to proactive, delivering measurable impacts:
 
-1. **MTTR (Mean Time to Respond) Reduction:** Clusters hundreds of isolated feedback reports into unified issues and generates 350-character Gemini-drafted templates instantly.
-2. **Engineering Velocity Optimization (Rating Drag):** Not all bugs are equal. ReviewPulse quantifies issue severity using the *Rating Drag* algorithm `Priority Score = Cluster Frequency * (Target Store Rating - Average Cluster Rating)`. High-impact clusters (Score > 15) can be dynamically routed directly to your Jira backlog.
-3. **Triage Hour Reduction:** Replaces chaotic spreadsheet analysis with an automated SQLite + LLM pipeline, reclaiming hundreds of manual community management hours.
+1. **MTTR (Mean Time to Respond) Reduction:** Groups isolated feedback reports into shared issues, and drafts a Gemini reply for any review in one click, capped at Google Play's 350-character limit.
+2. **Engineering Velocity Optimization (Rating Drag):** Not all bugs are equal. ReviewPulse quantifies issue severity using the *Rating Drag* algorithm `Priority Score = Cluster Frequency * (Target Store Rating - Average Cluster Rating)`. Clusters scoring above 15 get a Push to Jira button in the dashboard.
+3. **Less Manual Triage:** Replaces spreadsheet analysis with a SQLite + LLM pipeline that does the first pass of sorting for you.
 
 ---
 
@@ -62,9 +62,9 @@ ReviewPulse AI shifts your mobile game operations from reactive to proactive, de
 Before running ReviewPulse AI with real data, you'll need:
 
 - **Python 3.11+**
-- **Google Play Developer API** — a service account JSON with "Reply to Reviews" permission. [Setup guide](https://developers.google.com/android-publisher/getting_started)
-- **Gemini API key** — get one at [aistudio.google.com](https://aistudio.google.com)
-- **Jira API token** (optional) — only required for automatic backlog routing
+- **Google Play Developer API:** a service account JSON with "Reply to Reviews" permission. [Setup guide](https://developers.google.com/android-publisher/getting_started)
+- **Gemini API key:** see the note on free and paid keys in Step 1 below
+- **Jira API token** (optional): needed for the Push to Jira button
 
 ---
 
@@ -76,7 +76,7 @@ When you are ready to process real data, you must provide your Google Play and G
 1. Rename `.env.example` to `.env`.
 2. Fill out the fields:
    - `PLAY_STORE_PACKAGE_NAME`: The ID of your game (e.g., `com.yourcompany.yourgame`).
-   - `GEMINI_API_KEY`: Generate a free AI key at [Google AI Studio](https://aistudio.google.com/app/apikey). 
+   - `GEMINI_API_KEY`: A free key from [Google AI Studio](https://aistudio.google.com/app/apikey) is fine for testing with the demo or sample data. For real player reviews, use a key from a Google Cloud project with billing enabled: on the free tier, Google can use your prompts to improve its products, and human reviewers may read them. See the [Gemini API terms](https://ai.google.dev/gemini-api/terms).
    - `GOOGLE_APPLICATION_CREDENTIALS_JSON`: A Service Account JSON from your Google Play Console with "Reply to Reviews" permission. Paste it **on a single line** next to the `=` sign.
    - `JIRA_*`: (Optional) Fill these out to enable the "Push to Jira" button.
 
@@ -121,12 +121,12 @@ A successful run prints the number of reviews fetched. If this fails, the most c
 
 ## 🏗️ Architecture & Security
 
-ReviewPulse AI utilizes an offline-first batch processing strategy to respect strict API limitations and quota caps.
+ReviewPulse AI fetches and processes reviews in batches, which keeps it within Google Play and Gemini API quotas.
 
 ```mermaid
 graph TD
     A[Google Play Developer API] -->|Batch Fetch| B(Ingestion Engine)
-    B -->|Upsert Raw JSON| C[(SQLite: UNTRIAGED)]
+    B -->|Upsert reviews| C[(SQLite: UNTRIAGED)]
     
     C -->|Extract Batch| D{Gemini LLM}
     D -->|Semantic Clustering| E[(SQLite: TRIAGED)]
@@ -138,7 +138,7 @@ graph TD
 ```
 
 ### Security First
-- **Zero-File Credentials:** Keys are injected directly into memory via `.env` to prevent accidental GitHub commits.
-- **Local Persistence:** Data is stored in a local SQLite WAL database. Your proprietary triage metrics never sync to a third-party cloud.
-- **Privacy Boundary:** Internal metrics and Jira configs are strictly stripped from the LLM context window. Gemini only sees the raw, anonymized review text. See `SECURITY.md` for more details.
+- **Credentials in `.env`:** Keys live in `.env`, which is gitignored. The service account JSON is pasted into `.env` and parsed in memory, so there is no separate key file to commit by accident.
+- **Local Persistence:** Reviews, clusters and priority scores are stored in a local SQLite WAL database. ReviewPulse has no cloud sync. Data leaves your machine when you send it: review fields to Gemini, approved replies to Google Play, and, when you click Push to Jira, the cluster name, priority score and up to five reviews (reviewer names included) to your Jira project.
+- **Privacy Boundary:** Priority scores, your target rating and Jira settings are not included in Gemini prompts. Gemini sees review text, plus star rating and app version when clustering, but not reviewer names. Review text is passed as written, so it can contain personal details players type in, such as names, emails or account IDs. See `SECURITY.md` for the exact fields.
 
